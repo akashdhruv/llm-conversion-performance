@@ -1,0 +1,280 @@
+# LLM chat template
+[[instructions]]
+role = "user"
+content = """
+You are a code conversion tool for a scientific computing application. 
+The application is organized as different source files in a directory structure. 
+I will give you a C++ file which you will convert to a FORTRAN interface for
+interoperability.
+
+The code you will receive is part of a bigger codebase so do not add additional 
+function, subroutines, or a main program definition. Just do the conversion process 
+line-by-line. 
+
+Here are some of the rules I want you to follow:
+
+  1. The input code is part of a C++ header file which needs to be converted
+     to a FORTRAN module file. In order to do that I want you to replace, 
+     ```
+     #ifndef <MODULE-NAME>_MOD
+     #define <MODULE-NAME>_MOD
+     namespace <module-name> { 
+     ... 
+     }
+     extern "C" {
+     ...
+     }
+     #endif
+     ```
+     with a FORTRAN style,
+     ```
+     module <module-name>
+       use, intrinsic :: iso_c_binding
+       implicit none
+
+       private
+         ! private subroutines to bind with extern C functions
+
+       public
+         ! public variable pointers and init and finalize subroutines
+
+     contains
+         subroutine <module-name>_init
+           ! establish contracts with C++ data using bind C subroutines
+         end subroutine <module-name_init
+
+         subroutine <module-name>_finalize
+           ! destroy contracts with C++ data, assign pointers to null
+         end subroutine <module-name>_finalize
+
+     end module <module-name>
+     ```
+
+  2. Combine `#include <module-name.hpp>`and `using namespace <module-name>` statement 
+     with a `use <module-name>` statement and assume that any variables that are not
+     declared in the file are available in the use module files. Follow FORTRAN syntax.
+
+  3. Add bind C functions to an interface in the private section of the module to bind 
+     with extern C functions in the C++ header file.
+
+  4. Add `use, intrinsic :: iso_c_binding` and convert C++ variables to corresponding
+     FORTRAN pointers. Convert variables declared as `const` to corresponding FORTRAN 
+     parameters. For the latter treat `std::double` as `real(dp)` and `std::complex<double>` 
+     as `complex(dp)` and include `use types` module. Adjust the syntax for correctness 
+     and make the pointers and variables public.
+
+  5. Note that C++ arrays with size `2*nf+1` should be mapped to a FORTRAN pointer array 
+     ranging form `(-nf:nf)`. To do that you have to use a `temp_ptr` to first establish
+     the contract using `c_f_pointer` and then do the mapping. For arrays with size `nf`
+     use `temp_ptr` but map to FORTRAN with range `(1:nf)`
+
+  5. Add `<module-name>_init` and `<module-name>_finalize` to the FORTRAN to establish
+     and destroy contract with C++ data using `c_f_pointer` and bind C functions. 
+     Make these subroutines public
+
+I will give you a test problem once you tell me if you understand my requirements. 
+"""
+
+[[instructions]]
+role = "assistant"
+content = "I am ready. Please give me a test problem"
+
+[[instructions]]
+role = "user"
+content = """
+This is a template for a C++ header file which will be your input, convert it to a FORTRAN
+interface based on the rules I just described:
+
+```
+#ifndef EXAMPLE_MOD
+#define EXAMPLE_MOD
+
+#include<nf_mod.hpp>
+
+namespace example_mod {
+  using namespace nf_mod;
+
+  int kdot;
+  const int nloop = 2;
+  const int fn = -5;
+  const double zip = 0.0;
+  const double one = 1.0;
+  bool myflag;
+  const std::complex<double> im(zip, one);
+  std::complex<double> omega(zip, one);
+  double tau[2*nf+1] = {1.0, -1.0, 1.0, -1.0, 1.0, 0.0, -1.0, 1.0, -1.0, 1.0, -1.0};
+  double l[nf];
+  double le;
+  double bxm, bxn;
+}
+
+extern "C" {
+  int* example_mod_kdot() {
+    return &example_mod::kdot;
+  }
+  double* example_mod_tau() {
+    return example_mod::tau;
+  }
+  double* example_mod_l() {
+    return exmaple_mod::l;
+  }
+  double* example_mod_le() {
+    return &example_mod::le;
+  }
+  bool* example_mod_myflag() {
+    return &example_mod::myflg;
+  }
+  double* example_mod_bxm() {
+    return &example_mod::bxm;
+  }
+  double* example_mod_bxn() {
+    return &example_mod::bxn;
+  }
+  std::complex<double>* example_mod_omega() {
+   return &example_mod::omega;
+  } 
+}
+
+#endif
+```
+"""
+
+[[instructions]]
+role = "assistant"
+content = """
+
+This is the corresponding FORTRAN module:
+
+```
+module example_mod
+  use, intrinsic :: iso_c_binding
+  use nf_mod
+  use types
+  implict none
+
+  private
+    interface
+      function get_kdot() bind(C, name="example_mod_kdot")
+        import :: c_ptr, c_integer
+        type(c_ptr) :: get_kdot
+      end function get_kdot
+
+      function get_myflag() bind(C, name="example_mod_myflag")
+        import :: c_ptr, c_bool
+        type(c_ptr) :: get_myflag
+      end function get_myflag
+
+      function get_tau() bind(C, name="example_mod_tau")
+        import :: c_ptr, c_double
+        type(c_ptr) :: get_tau
+      end function get_tau
+
+      function get_l() bind(C, name="example_mod_l")
+        import :: c_ptr, c_double
+        type(c_ptr) :: get_l
+      end function get_l
+
+      function get_le() bind(C, name="example_mod_le")
+        import :: c_ptr, c_double
+        type(c_ptr) :: get_le
+      end function get_le
+
+      function get_bxm() bind(C, name="example_mod_bxm")
+        import :: c_ptr, c_double
+        type(c_ptr) :: get_bxm
+      end function get_bxm
+
+      function get_bxn() bind(C, name="example_mod_bxn")
+        import :: c_ptr, c_double
+        type(c_ptr) :: get_bxn
+      end function get_bxn
+
+      function get_omega() bind(C, name="example_mod_omega")
+        import :: c_ptr, c_double_complex
+        type(c_ptr) :: get_omega
+      end function get_omega
+    end interface
+
+
+  public :: kdot, nloop, fn, zip, one, &
+            myflag, im, tau, l, le, bxm, bxn, &      
+            example_mod_init, example_mod_finalize
+
+    integer(c_init), pointer :: kdot => null()
+    integer, parameter :: nloop = 2
+    integer, parameter :: fn = -5
+    real(dp), parameter :: zip = 0._dp
+    real(dp), parameter :: one = 1._dp
+    logical(c_bool), pointer :: myflag => null()
+    complex(dp), parameter :: im = (zip,one)
+    real(c_double), pointer, dimension(:) :: tau => null(), l => null()
+    real(c_double), pointer :: le => null(), bxm => null(), bxn => null()
+    complex(c_double_complex) :: omega => null()
+
+contains
+  subroutine example_mod_init()
+    implicit none
+    write(*,*) "Initializing example_mod"
+    real(c_double), dimension(:), pointer :: temp_ptr => null() 
+
+    allocate(tau(-nf:nf), l(1:nf))
+    call c_f_pointer(get_tau(), temp_ptr, [2*nf + 1])
+    tau(-nf:nf) => temp_ptr(1:2*nf+1)
+    temp_ptr => null()
+
+    call c_f_pointer(get_l(), temp_ptr, [nf])
+    l(1:nf) => temp_ptr(1:nf)
+    temp_ptr => null()
+
+    call c_f_pointer(get_kdot(), kdot)
+    call c_f_pointer(get_myflag(), myflag)
+    call c_f_pointer(get_le(), le)
+    call c_f_pointer(get_bxm(), bxm)
+    call c_f_pointer(get_bxn(), bxn)
+    call c_f_pointer(get_omega(), omega)
+  end subroutine example_mod_finalize
+
+  subroutine example_mod_finalize()
+    implicit none
+    write(*,*) "Finalizing example_mod"
+    nullify(tau,l)
+    kdot => null()
+    myflag => null()
+    le => null()
+    bxm => null()
+    bxn => null()
+    omega => null()
+  end subroutine example_mod_finalize
+
+end module example_mod
+```
+
+
+Note the following:
+
+  1. I have create a FORTRAN interface module to interoperate with `example_mod`
+     header file in C++.
+
+  2. I have converted the use of `<nf_mod.hpp>` and `using namespace nf_mod` to
+     a `use nf_mod` statement in FORTRAN.
+  
+  3. I have added a private interface to bind with extern "C" functions, and 
+     created fortran pointers to establish contract with C++ variables
+
+  4. For variables that are `const` I have created corresponding FORTRAN
+     parameters. I have followed rules to convert `std:double` to `real(dp)`, and
+     `std:complex<double>` to `complex(dp)` using `use types` module
+
+  5. I have also create `example_mod_init` and `example_mod_finalize` to establish
+     and destroy C++ contracts. I use `c_f_pointer` to establish these contracts
+     using bind C functions in the private interface and the public fortran pointers.
+
+  6. Arrays with size `2*nf+1` are assigned desired bounds of `(-nf:nf)` and arrays
+     with size `nf` are assigned bounds of `(1:nf)`.
+
+Does this match your expected result?
+"""
+
+[[instructions]]
+role = "user"
+content = "Yes this is the correct output. Now convert the following module in a similar way:"

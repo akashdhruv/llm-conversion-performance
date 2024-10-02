@@ -1,0 +1,253 @@
+[[chat]]
+role = "user"
+content = """
+You are a code conversion tool for a scientific computing application.
+The application is organized as different source files in a directory structure.
+I will give you a Fortran file which you will convert to a C++ source code file.
+
+The code you will receive is part of a larger codebase, so do not add additional
+function declarations or a main function definition. Just perform the conversion
+process line-by-line.
+
+Here are some rules I want you to follow:
+
+1. The input code is a Fortran subroutine or function which needs to be converted
+   to a C++ function. Replace the Fortran structure:
+
+   ```
+   use <module-name>
+   subroutine <func-name>(xw)
+    real(dp):: xw
+    ...
+   end subroutine
+   ```
+
+   with the C++ equivalent:
+
+   ```
+   #include <module-name.hpp>
+   using namespace <module-name>;  
+
+   void <func-name>(double& xw) {
+     ...
+     return;
+   }
+
+   extern "C" {
+     void <func-name>_wrapper(double* xw) {
+       <func-name>(*xw);
+     }
+   }
+   ```
+
+2. Replace any use `<module-name>` statements with `#include <module-name.hpp>`
+   and using `namespace <module-name>;`. Place the `#include` statements at the top
+   of the file. You can assume that variables not declared in the subroutine are available
+   through the header files in C++. Ignore `use types` and other irrelevant modules.
+
+3. Convert Fortran types as follows:
+
+   `real(dp)` to `double`
+   `complex(dp)` to `std::complex<double>` Include the `<complex>` header in case of complex types.
+
+   Convert Fortran arrays to C++ using the `FArray` template classes which support Fortran-like
+   indexing. For example, replace:
+
+   ```
+   real(dp), dimension(nx, ny) :: a
+   ```
+
+   with:
+
+   ```
+   FArray2D<double> a(nx, ny);
+   ```
+
+   Include the <FArray.hpp> header and use the appropriate class (FArray1D, FArray2D, FArray3D) depending on 
+   the array dimensionality.
+
+4. For subroutine arguments declared with intent(in) or intent(inout), pass them by reference in C++. For example:
+
+   ```
+   real(dp), intent(in) :: a
+   ```
+
+   ```
+   double& a
+   ```
+
+5. Replace Fortran statement functions with equivalent lambda functions in C++.
+
+6. For complex number calculations, ensure the operations are correctly mapped 
+   to C++ `std::complex<double>`.
+
+7. Ensure the Fortran `return` statement is handled correctly in C++ by placing a `return;` 
+   at the end of the function.
+
+8. In the `extern "C"` section, create wrapper functions that expose the C++ functions
+   to Fortran. The wrapper functions should handle the conversion between C++ and Fortran
+   data types, particularly for arrays, and be named using the _wrapper suffix.
+
+9. Ensure that the Fortran function or subroutine calls the corresponding C++ wrapper
+   function in the generated Fortran interface file (<filename>_fi.f90).
+
+   Example structure:
+
+   ```
+   subroutine <func-name>(args)
+     use, intrinsic :: iso_c_binding
+     interface
+        subroutine <func-name>_wrapper(args) bind(C, name="<func-name>_wrapper")
+        ! Argument declarations
+        end subroutine <func-name>_wrapper
+     end interface
+     call <func-name>_wrapper(args)
+   end subroutine <func-name>
+   ```
+
+10. Follow the general pattern and structure, and do not introduce unnecessary
+    main functions or global variable declarations unless required. 
+
+11. The source code will be provided under elements <source> </source>
+
+12. There may also be a draft code available under elements <draft> </draft>. This draft code
+    can be used as an additional data point to inform the conversion process. It will
+    containt additional prompts defined as `scribe-prompt:`
+
+13. I want you to enclose the code solution under elements <csource> </csource> for the C++ part of the code,
+    and elements <fsource> </fsource> for the Fortran interface.
+
+"""
+
+[[chat]]
+role = "assistant"
+content = "I am ready. Please give me a test problem."
+
+[[chat]]
+role = "user"
+content = """
+This is a template for a Fortran subroutine file which will be your input. Convert it
+to C++ using the rules I gave you:
+
+```
+<source>
+subroutine example(a,b,c,d)
+  use types
+  use constants_mod
+  use nf_mod
+  use zcouple_mod
+  use ewcharge_mod
+
+  implicit none
+
+  real(dp) :: a
+  real(dp), dimension(-nf:nf) :: b
+  real(dp), intent(in), dimension(mxpart,4) :: c
+  real(dp), intent(inout), dimension(mxpart,mxpart) :: d
+
+  integer :: i,j
+  real(dp), dimension(nf,4) :: temp
+
+  do i=-nf,nf
+    b(i) = 0.
+  end do
+
+  do i=2,10
+    do j=1,i-1
+      c(j,2) = d(i,j)
+    end do
+  end do
+
+  return
+end subroutine example
+</source>
+```
+
+I expect the output to follow the format and rules I gave you. 
+"""
+
+[[chat]]
+role = "assistant"
+content = """
+Here is the corresponding C++ file:
+
+```
+<csource>
+#include <constants_mod.hpp>
+#include <nf_mod.hpp>
+#include <zcouple_mod.hpp>
+#include <ewcharge_mod.hpp>
+#include <FArray.hpp>
+
+void example(double a, FArray1D<double>& b, FArray2D<double>& c, FArray2D<double>& d) {
+  using namespace constants_mod;
+  using namespace nf_mod;
+  using namespace zcouple_mod;
+  using namespace ewcharge_mod;
+
+  FArray2D<double> temp(nf,4);
+
+  for(int i=-nf; i<=nf; i++) {
+    b(i) = 0.0;
+  }
+
+  for(int i=2; i<=10; i++) {
+    for(int j=1; j<i; j++) {
+      c(j,2) = d(i,j);
+    }
+  }
+
+  return;
+}
+
+extern "C" {
+  void example_wrapper(double a, double* fb, double* fc, double* fd) {
+
+    using namespace mxpart_mod;
+
+    FArray1D<double> b(fb, 2*nf+1, -nf);
+    FArray2D<double> c(fc, mxpart, 4);
+    FArray2D<double> d(fd, mxpart, mxpart);
+    example(a, b, c, d);
+  }
+}
+</csource>
+```
+
+And the corresponding Fortran-C interface file (example_fi.f90):
+
+```
+<fsource>
+subroutine example(a,b,c,d)
+  use, intrinsic :: iso_c_binding
+  use constants_mod
+  use nf_mod
+  use zcouple_mod
+  use ewcharge_mod
+
+  implicit none
+
+  real(c_double), intent(inout) :: a
+  real(c_double), dimension(-nf:nf), intent(inout) :: b
+  real(c_double), dimension(mxpart,4), intent(in) :: c
+  real(c_double), dimension(mxpart,mxpart), intent(inout) :: d
+
+  interface
+    subroutine example_wrapper(a,b,c,d) bind(C, name="example_wrapper")
+      import :: c_double
+      real(c_double), value :: a
+      real(c_double), dimension(-nf:nf), intent(inout) :: b
+      real(c_double), dimension(mxpart,4), intent(in) :: c
+      real(c_double), dimension(mxpart,mxpart), intent(inout) :: d
+    end subroutine example_wrapper
+  end interface
+
+  call example_wrapper(a,b,c,d)
+end subroutine example
+</fsource>
+```
+"""
+
+[[chat]]
+role = "user"
+content = "Yes, this is correct. Now convert the following module similarly:"
