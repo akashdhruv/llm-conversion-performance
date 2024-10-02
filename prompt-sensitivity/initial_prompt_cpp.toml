@@ -1,0 +1,164 @@
+# LLM chat template
+[[instructions]]
+role = "user"
+content = """
+You are a code conversion tool for a scientific computing application. 
+The application is organized as different source files in a directory structure. 
+I will give you a FORTRAN file which you will convert to a C++ source code file.
+
+The code you will receive is part of a bigger codebase so do not add additional 
+function declarations, or a main function definition. Just do the conversion process 
+line-by-line. 
+
+Here are some of the rules I want you to follow:
+
+  1. The input code is part of a FORTRAN module file which needs to be converted
+     to a C++ header file. In order to that I want you to replace, 
+     ```
+     module <module-name> 
+     ... 
+     end module <module-name>
+     ```
+     with a C++ style,
+     ```
+     #ifndef <MODULE-NAME>_MOD
+     #define <MODULE-NAME>_MOD
+     namespace <module-name> { 
+     ... 
+     }
+     extern "C" {
+     ...
+     }
+     #endif
+     ```
+
+  2. Replacing any `use <module-name>` statement with `#include <module-name.hpp>`
+     header file and `using namespace <module-name>` statement. Put the `#include`
+     statements at the top of the file and assume that any variables that are not
+     declared in the file are available in the header files. Follow C++ syntax.
+     Ignore the `use types` statement since it will not be available in C++.
+
+  3. Treat `real(dp)` as `std::double`, and `complex(dp)` as `std::complex<double>` 
+     and include <complex> header file to convert to corresponding C++ types. 
+     Adjust the syntax for correctness. Treat Fortran array initailization as C++ 
+     array initalization.
+
+  4. Within the extern "C" interface expose variables that do not have `const`
+     attribute.
+
+I will give you a test problem once you tell me if you understand my requirements. 
+"""
+
+[[instructions]]
+role = "assistant"
+content = "I am ready. Please give me a test problem"
+
+[[instructions]]
+role = "user"
+content = """
+This a template for the FORTRAN module file which will be your input, convert 
+it to C++ using the rules I gave you:
+
+```
+module example_mod
+  use types
+  use nf_mod
+  implict none
+
+public
+    integer :: kdot
+    integer,parameter:: nloop=2, fn=-5
+    real(dp),parameter:: zip=0._dp
+    real(dp),parameter:: one=1._dp
+    complex(dp),parameter:: im=(zip,one)
+    logical :: myflag
+    real(dp) :: tau(-nf:nf)=[1._dp,-1._dp,1._dp,-1._dp,1._dp,0._dp,-1._dp,1._dp,-1._dp,1._dp,-1._dp]
+    real(dp) :: l(nf),le
+    real(dp) :: bxm, bxn
+    save
+
+end module example_mod
+```
+"""
+
+[[instructions]]
+role = "assistant"
+content = """
+Here is the corresponding C++ header file:
+
+```
+#ifndef EXAMPLE_MOD
+#define EXAMPLE_MOD
+
+#include<nf_mod.hpp>
+
+namespace example_mod {
+  using namespace nf_mod;
+
+  int kdot;
+  const int nloop = 2;
+  const int fn = -5;
+  const double zip = 0.0;
+  const double one = 1.0;
+  bool myflag;
+  const std::complex<double> im(zip, one);
+  double tau[2*nf+1] = {1.0, -1.0, 1.0, -1.0, 1.0, 0.0, -1.0, 1.0, -1.0, 1.0, -1.0};
+  double l[nf];
+  double le;
+  double bxm, bxn;
+}
+
+extern "C" {
+  int* example_mod_kdot() {
+    return &example_mod::kdot;
+  }
+  double* example_mod_tau() {
+    return example_mod::tau;
+  }
+  double* example_mod_l() {
+    return exmaple_mod::l;
+  }
+  double* example_mod_le() {
+    return &example_mod::le;
+  }
+  bool* example_mod_myflag() {
+    return &example_mod::myflg;
+  }
+  double* example_mod_bxm() {
+    return &example_mod::bxm;
+  }
+  double* example_mod_bxn() {
+    return &example_mod::bxn;
+  }
+}
+
+#endif
+```
+
+Note the following:
+
+  1. `example_mod` is converted to a C++ style header file with the namespace
+     `example_mod`. I have also eliminated the use of `types` module and did
+      not include `<types.hpp>` or `using namespace types` in the C++ version.
+
+  2. I have included appropriate header file `<nf_mod.hpp>` and namespace 
+     `using namespace nf_mod`. I have also added a directive check using 
+     `#ifdef EXAMPLE_MOD` and `#define EXAMPLE_MOD` to follow the C++ convention 
+     for header files.
+
+  3. I have converted the FORTRAN data types to corresponding C++ types and 
+     followed instructions for `real(dp)` and `complex(dp)`.
+
+  4. Variables that are NOT `const` have an extern "C" interface with 
+     <module_name>_<variable_name> naming convention. For example, `example_mod::myflag`
+     and `example_mod::l` have an extern "C" interface but `example_mod:one` does
+     not have an extern "C" interface since it is a `const`.
+
+  4. The `save` statement is removed because it is not needed in C++. 
+
+Does this match your expected result?
+"""
+
+[[instructions]]
+role = "user"
+content = "Yes this is the correct output. Now convert the following module in a similar way:"
