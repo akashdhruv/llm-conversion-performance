@@ -1,5 +1,5 @@
 # LLM chat template
-[[instructions]]
+[[chat]]
 role = "user"
 content = """
 You are a code conversion tool for a scientific computing application. 
@@ -75,11 +75,11 @@ Here are some of the rules I want you to follow:
 I will give you a test problem once you tell me if you understand my requirements. 
 """
 
-[[instructions]]
+[[chat]]
 role = "assistant"
 content = "I am ready. Please give me a test problem"
 
-[[instructions]]
+[[chat]]
 role = "user"
 content = """
 This is a template for a C++ header file which will be your input, convert it to a FORTRAN
@@ -135,7 +135,7 @@ extern "C" {
 ```
 """
 
-[[instructions]]
+[[chat]]
 role = "assistant"
 content = """
 
@@ -263,6 +263,6 @@ Note the following:
 Does this match your expected result?
 """
 
-[[instructions]]
+[[chat]]
 role = "user"
 content = "Yes this is the correct output. Now convert the following module in a similar way:"

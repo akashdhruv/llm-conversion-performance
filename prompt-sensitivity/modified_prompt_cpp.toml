@@ -1,5 +1,5 @@
 # LLM chat template
-[[instructions]]
+[[chat]]
 role = "user"
 content = """
 You are a code conversion tool for a scientific computing application. 
@@ -49,11 +49,11 @@ Here are some of the rules I want you to follow:
 I will give you a test problem once you tell me if you understand my requirements. 
 """
 
-[[instructions]]
+[[chat]]
 role = "assistant"
 content = "I am ready. Please give me a test problem"
 
-[[instructions]]
+[[chat]]
 role = "user"
 content = """
 This a template for the FORTRAN module file which will be your input, convert 
@@ -81,7 +81,7 @@ end module example_mod
 ```
 """
 
-[[instructions]]
+[[chat]]
 role = "assistant"
 content = """
 Here is the corresponding C++ header file:
@@ -147,7 +147,7 @@ Note the following:
      for header files.
 
   3. I have converted the FORTRAN data types to corresponding C++ types and 
-     followed instructions for `real(dp)` and `complex(dp)`.
+     followed chat for `real(dp)` and `complex(dp)`.
 
   4. Variables that are NOT `const` have an extern "C" interface with 
      <module_name>_<variable_name> naming convention. For example, `example_mod::myflag`
@@ -159,6 +159,6 @@ Note the following:
 Does this match your expected result?
 """
 
-[[instructions]]
+[[chat]]
 role = "user"
 content = "Yes this is the correct output. Now convert the following module in a similar way:"
