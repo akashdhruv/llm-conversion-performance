@@ -2,11 +2,6 @@ module NoahmpIO_fi
 
   use NoahmpIOVarType, ONLY: NoahmpIO_type
   use NoahmpIOVarInitMod, ONLY: NoahmpIOVarInitDefault
-  use NoahmpInitMainMod, ONLY: NoahmpInitMain
-  use NoahmpReadNamelistMod, ONLY: NoahmpReadNamelist
-  use NoahmpReadTableMod, ONLY: NoahmpReadTable
-  use NoahmpReadLandMod, ONLY: NoahmpReadLandHeader, NoahmpReadLandMain
-  use NoahmpDriverMainMod, ONLY: NoahmpDriverMain
 
   use, intrinsic :: iso_c_binding
 
@@ -103,47 +98,5 @@ contains
     NoahmpIO_cptr%SHBXY = C_LOC(NoahmpIO%SHBXY)
     NoahmpIO_cptr%EVBXY = C_LOC(NoahmpIO%EVBXY)
   end subroutine NoahmpIOVarInitDefault_fi
-
-  subroutine NoahmpInitMain_fi(NoahmpIO_cptr) bind(C, name="NoahmpInitMain_fi")
-    use, intrinsic :: iso_c_binding 
-    implicit none 
-    type(NoahmpIO_type_fi), intent(inout) :: NoahmpIO_cptr
-    call NoahmpInitMain(NoahmpIO)
-  end subroutine NoahmpInitMain_fi
-
-  subroutine NoahmpReadTable_fi(NoahmpIO_cptr) bind(C, name="NoahmpReadTable_fi")
-    use, intrinsic :: iso_c_binding 
-    implicit none 
-    type(NoahmpIO_type_fi), intent(inout) :: NoahmpIO_cptr
-    call NoahmpReadTable(NoahmpIO)
-  end subroutine NoahmpReadTable_fi
-
-  subroutine NoahmpReadNamelist_fi(NoahmpIO_cptr) bind(C, name="NoahmpReadNamelist_fi")
-    use, intrinsic :: iso_c_binding 
-    implicit none 
-    type(NoahmpIO_type_fi), intent(inout) :: NoahmpIO_cptr
-    call NoahmpReadNamelist(NoahmpIO)
-  end subroutine NoahmpReadNamelist_fi
-
-  subroutine NoahmpReadLandHeader_fi(NoahmpIO_cptr) bind(C, name="NoahmpReadLandHeader_fi")
-    use, intrinsic :: iso_c_binding 
-    implicit none 
-    type(NoahmpIO_type_fi), intent(inout) :: NoahmpIO_cptr
-    call NoahmpReadLandHeader(NoahmpIO)
-  end subroutine NoahmpReadLandHeader_fi
-
-  subroutine NoahmpReadLandMain_fi(NoahmpIO_cptr) bind(C, name="NoahmpReadLandMain_fi")
-    use, intrinsic :: iso_c_binding 
-    implicit none 
-    type(NoahmpIO_type_fi), intent(inout) :: NoahmpIO_cptr
-    call NoahmpReadLandMain(NoahmpIO)
-  end subroutine NoahmpReadLandMain_fi
-
-  subroutine NoahmpDriverMain_fi(NoahmpIO_cptr) bind(C, name="NoahmpDriverMain_fi")
-    use, intrinsic :: iso_c_binding 
-    implicit none 
-    type(NoahmpIO_type_fi), intent(inout) :: NoahmpIO_cptr
-    call NoahmpDriverMain(NoahmpIO)
-  end subroutine NoahmpDriverMain_fi
 
 end module NoahmpIO_fi
